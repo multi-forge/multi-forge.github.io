@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MultiForge · Redirecionamento</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #0E1114;
+      color: #EDEFF2;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      width: 100%;
+      max-width: 520px;
+      background: #161A20;
+      border: 1px solid #282E38;
+      border-radius: 8px;
+      padding: 32px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    }
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: #242A35;
+      color: #9CA3AF;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 600;
+      margin: 0 0 12px;
+      color: #F3F4F6;
+    }
+    p {
+      margin: 0 0 20px;
+      color: #9CA3AF;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    .slug-badge {
+      display: inline-block;
+      font-family: monospace;
+      background: #212631;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #F87171;
+    }
+    .route-list {
+      list-style: none;
+      padding: 0;
+      margin: 20px 0 0;
+      border-top: 1px solid #282E38;
+    }
+    .route-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #20252E;
+    }
+    .route-slug {
+      font-family: monospace;
+      font-size: 14px;
+      color: #60A5FA;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .route-target {
+      font-size: 12px;
+      color: #6B7280;
+      max-width: 240px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .actions {
+      margin-top: 24px;
+      display: flex;
+      gap: 12px;
+    }
+    .btn {
+      display: inline-block;
+      text-align: center;
+      padding: 9px 16px;
+      border-radius: 5px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .btn-primary {
+      background: #2563EB;
+      color: #fff;
+    }
+    .btn-secondary {
+      background: transparent;
+      border-color: #374151;
+      color: #D1D5DB;
+    }
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid #2563EB;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="card" id="cardBox">
+    <div class="spinner" id="spinner"></div>
+    <div style="text-align:center;">
+      <h1 id="titleText">Redirecionando...</h1>
+      <p id="descText">Aguarde um instante.</p>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var ROUTES = {
+        "motoboy": "https://anthor-server.tail3916ee.ts.net/motoboy",
+        "cozinha": "https://anthor-server.tail3916ee.ts.net/cozinha",
+        "painel": "https://anthor-server.tail3916ee.ts.net/cozinha",
+        "qrcode": "https://anthor-server.tail3916ee.ts.net/qrcode",
+        "alexa": "https://anthor-server.tail3916ee.ts.net/cozinha",
+        "server": "https://anthor-server.tail3916ee.ts.net"
+      };
+
+      function forward(targetUrl) {
+        try {
+          var dest = new URL(targetUrl, location.origin);
+          var curr = new URL(location.href);
+          curr.searchParams.forEach(function (v, k) {
+            if (k !== 'to' && k !== 'url') dest.searchParams.set(k, v);
+          });
+          if (curr.hash) dest.hash = curr.hash;
+          location.replace(dest.toString());
+        } catch (e) {
+          location.replace(targetUrl);
+        }
+      }
+
+      function showNotFound(slug) {
+        document.getElementById('spinner').style.display = 'none';
+        var card = document.getElementById('cardBox');
+        var routesHtml = Object.keys(ROUTES).map(function (k) {
+          return '<li class="route-item">' +
+            '<a class="route-slug" href="/' + k + '">/' + k + '</a>' +
+            '<span class="route-target">' + ROUTES[k] + '</span>' +
+            '</li>';
+        }).join('');
+
+        card.innerHTML =
+          '<span class="tag">Link Hub · 404</span>' +
+          '<h1>Destino não encontrado</h1>' +
+          '<p>O atalho <span class="slug-badge">/' + (slug || '') + '</span> não está cadastrado neste roteador.</p>' +
+          '<ul class="route-list">' + routesHtml + '</ul>' +
+          '<div class="actions">' +
+            '<a href="/" class="btn btn-primary">Ver Gateway</a>' +
+            '<a href="https://github.com/multi-forge/multi-forge.github.io/edit/main/routes.json" target="_blank" rel="noopener" class="btn btn-secondary">Editar routes.json</a>' +
+          '</div>';
+      }
+
+      // 1. Check direct query params ?to=... or ?url=...
+      var params = new URLSearchParams(location.search);
+      var queryDest = params.get('to') || params.get('url');
+      if (queryDest && /^https?:\/\//i.test(queryDest)) {
+        forward(queryDest);
+        return;
+      }
+
+      // 2. Parse pathname slug: e.g. /motoboy or /motoboy/
+      var parts = location.pathname.split('/').filter(Boolean);
+      var slug = parts.length > 0 ? parts[parts.length - 1].toLowerCase() : '';
+
+      if (slug && ROUTES[slug]) {
+        document.getElementById('descText').textContent = 'Conectando a ' + ROUTES[slug] + '...';
+        forward(ROUTES[slug]);
+        return;
+      }
+
+      // 3. Try fetching latest routes.json asynchronously (in case newly committed)
+      fetch('/routes.json?t=' + Date.now())
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data && typeof data === 'object') {
+            ROUTES = Object.assign(ROUTES, data);
+            if (slug && ROUTES[slug]) {
+              forward(ROUTES[slug]);
+              return;
+            }
+          }
+          showNotFound(slug);
+        })
+        .catch(function () {
+          showNotFound(slug);
+        });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+name: Rebuild Static Routes & QR Codes
+
+on:
+  push:
+    paths:
+      - 'routes.json'
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci || npm install qrcode
+
+      - name: Run build script
+        run: node build.js
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --staged --quiet || git commit -m "Auto-rebuild static routes and QR codes [skip ci]"
+          git push
