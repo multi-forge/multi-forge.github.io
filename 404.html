@@ -110,11 +110,17 @@
           "server": "https://anthor-server.tail3916ee.ts.net"
         };
 
-      // Allowlist estrita para evitar vulnerabilidade de Open Redirect
-      var ALLOWED_HOSTS = [
-        "anthor-server.tail3916ee.ts.net",
-        "multi-forge.github.io"
-      ];
+      // Allowlist dinâmica derivada automaticamente das rotas oficiais (routes.json)
+      function getAllowedHosts() {
+        var hosts = ["multi-forge.github.io"];
+        Object.keys(ROUTES).forEach(function (k) {
+          try {
+            var h = new URL(ROUTES[k]).hostname.toLowerCase();
+            if (hosts.indexOf(h) === -1) hosts.push(h);
+          } catch (e) {}
+        });
+        return hosts;
+      }
 
       var SAFE_PARAMS = ["p", "id", "code", "platform"];
 
@@ -122,7 +128,7 @@
         try {
           var parsed = new URL(urlStr);
           if (parsed.protocol !== "https:") return false;
-          return ALLOWED_HOSTS.indexOf(parsed.hostname.toLowerCase()) !== -1;
+          return getAllowedHosts().indexOf(parsed.hostname.toLowerCase()) !== -1;
         } catch (e) {
           return false;
         }
@@ -198,9 +204,12 @@
       fetch("/routes.json", { cache: "no-store" })
         .then(function (r) { return r.json(); })
         .then(function (data) {
-          if (data && typeof data === "object" && slug && Object.prototype.hasOwnProperty.call(data, slug)) {
-            forward(data[slug]);
-            return;
+          if (data && typeof data === "object") {
+            ROUTES = Object.assign(ROUTES, data);
+            if (slug && Object.prototype.hasOwnProperty.call(data, slug)) {
+              forward(data[slug]);
+              return;
+            }
           }
           showError("Atalho não encontrado", "Verifique o QR Code escaneado ou acesse o check-in de entregadores.");
         })
