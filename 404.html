@@ -3,6 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'none';">
   <title>MultiForge · Redirecionamento</title>
   <style>
     * { box-sizing: border-box; }
@@ -19,7 +22,7 @@
     }
     .card {
       width: 100%;
-      max-width: 520px;
+      max-width: 440px;
       background: #161A20;
       border: 1px solid #282E38;
       border-radius: 8px;
@@ -39,57 +42,21 @@
       margin-bottom: 16px;
     }
     h1 {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 600;
-      margin: 0 0 12px;
+      margin: 0 0 10px;
       color: #F3F4F6;
     }
     p {
       margin: 0 0 20px;
       color: #9CA3AF;
-      font-size: 15px;
+      font-size: 14px;
       line-height: 1.5;
     }
-    .slug-badge {
-      display: inline-block;
-      font-family: monospace;
-      background: #212631;
-      padding: 2px 6px;
-      border-radius: 4px;
-      color: #F87171;
-    }
-    .route-list {
-      list-style: none;
-      padding: 0;
-      margin: 20px 0 0;
-      border-top: 1px solid #282E38;
-    }
-    .route-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 0;
-      border-bottom: 1px solid #20252E;
-    }
-    .route-slug {
-      font-family: monospace;
-      font-size: 14px;
-      color: #60A5FA;
-      text-decoration: none;
-      font-weight: 600;
-    }
-    .route-target {
-      font-size: 12px;
-      color: #6B7280;
-      max-width: 240px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
     .actions {
-      margin-top: 24px;
+      margin-top: 20px;
       display: flex;
-      gap: 12px;
+      gap: 10px;
     }
     .btn {
       display: inline-block;
@@ -128,89 +95,117 @@
     <div class="spinner" id="spinner"></div>
     <div style="text-align:center;">
       <h1 id="titleText">Redirecionando...</h1>
-      <p id="descText">Aguarde um instante.</p>
+      <p id="descText">Validando rota segura.</p>
     </div>
   </div>
 
   <script>
     (function () {
       var ROUTES = {
-        "motoboy": "https://anthor-server.tail3916ee.ts.net/motoboy",
-        "cozinha": "https://anthor-server.tail3916ee.ts.net/cozinha",
-        "painel": "https://anthor-server.tail3916ee.ts.net/cozinha",
-        "qrcode": "https://anthor-server.tail3916ee.ts.net/qrcode",
-        "alexa": "https://anthor-server.tail3916ee.ts.net/cozinha",
-        "server": "https://anthor-server.tail3916ee.ts.net"
-      };
+          "motoboy": "https://anthor-server.tail3916ee.ts.net/motoboy",
+          "cozinha": "https://anthor-server.tail3916ee.ts.net/cozinha",
+          "painel": "https://anthor-server.tail3916ee.ts.net/cozinha",
+          "qrcode": "https://anthor-server.tail3916ee.ts.net/qrcode",
+          "alexa": "https://anthor-server.tail3916ee.ts.net/cozinha",
+          "server": "https://anthor-server.tail3916ee.ts.net"
+        };
+
+      // Allowlist estrita para evitar vulnerabilidade de Open Redirect
+      var ALLOWED_HOSTS = [
+        "anthor-server.tail3916ee.ts.net",
+        "multi-forge.github.io"
+      ];
+
+      var SAFE_PARAMS = ["p", "id", "code", "platform"];
+
+      function isAllowedDestination(urlStr) {
+        try {
+          var parsed = new URL(urlStr);
+          if (parsed.protocol !== "https:") return false;
+          return ALLOWED_HOSTS.indexOf(parsed.hostname.toLowerCase()) !== -1;
+        } catch (e) {
+          return false;
+        }
+      }
 
       function forward(targetUrl) {
+        if (!isAllowedDestination(targetUrl)) {
+          showError("Destino bloqueado", "O endereço solicitado não pertence à lista de domínios autorizados.");
+          return;
+        }
         try {
-          var dest = new URL(targetUrl, location.origin);
+          var dest = new URL(targetUrl);
           var curr = new URL(location.href);
           curr.searchParams.forEach(function (v, k) {
-            if (k !== 'to' && k !== 'url') dest.searchParams.set(k, v);
+            if (SAFE_PARAMS.indexOf(k) !== -1 && String(v).length <= 64) {
+              dest.searchParams.set(k, v);
+            }
           });
-          if (curr.hash) dest.hash = curr.hash;
           location.replace(dest.toString());
         } catch (e) {
           location.replace(targetUrl);
         }
       }
 
-      function showNotFound(slug) {
-        document.getElementById('spinner').style.display = 'none';
-        var card = document.getElementById('cardBox');
-        var routesHtml = Object.keys(ROUTES).map(function (k) {
-          return '<li class="route-item">' +
-            '<a class="route-slug" href="/' + k + '">/' + k + '</a>' +
-            '<span class="route-target">' + ROUTES[k] + '</span>' +
-            '</li>';
-        }).join('');
-
-        card.innerHTML =
-          '<span class="tag">Link Hub · 404</span>' +
-          '<h1>Destino não encontrado</h1>' +
-          '<p>O atalho <span class="slug-badge">/' + (slug || '') + '</span> não está cadastrado neste roteador.</p>' +
-          '<ul class="route-list">' + routesHtml + '</ul>' +
-          '<div class="actions">' +
-            '<a href="/" class="btn btn-primary">Ver Gateway</a>' +
-            '<a href="https://github.com/multi-forge/multi-forge.github.io/edit/main/routes.json" target="_blank" rel="noopener" class="btn btn-secondary">Editar routes.json</a>' +
-          '</div>';
+      function showError(title, message) {
+        var sp = document.getElementById("spinner");
+        if (sp) sp.style.display = "none";
+        var card = document.getElementById("cardBox");
+        card.innerHTML = '';
+        var tag = document.createElement("span");
+        tag.className = "tag";
+        tag.textContent = "Gateway Seguro";
+        var h1 = document.createElement("h1");
+        h1.textContent = title || "Atalho não encontrado";
+        var p = document.createElement("p");
+        p.textContent = message || "O endereço acessado não existe ou foi desativado.";
+        var actions = document.createElement("div");
+        actions.className = "actions";
+        var a1 = document.createElement("a");
+        a1.href = "/motoboy";
+        a1.className = "btn btn-primary";
+        a1.textContent = "Check-in de Entregador";
+        var a2 = document.createElement("a");
+        a2.href = "/";
+        a2.className = "btn btn-secondary";
+        a2.textContent = "Início";
+        actions.appendChild(a1);
+        actions.appendChild(a2);
+        card.appendChild(tag);
+        card.appendChild(h1);
+        card.appendChild(p);
+        card.appendChild(actions);
       }
 
-      // 1. Check direct query params ?to=... or ?url=...
+      // 1. Parâmetro ?to= validado estritamente contra ALLOWED_HOSTS
       var params = new URLSearchParams(location.search);
-      var queryDest = params.get('to') || params.get('url');
-      if (queryDest && /^https?:\/\//i.test(queryDest)) {
+      var queryDest = params.get("to") || params.get("url");
+      if (queryDest) {
         forward(queryDest);
         return;
       }
 
-      // 2. Parse pathname slug: e.g. /motoboy or /motoboy/
-      var parts = location.pathname.split('/').filter(Boolean);
-      var slug = parts.length > 0 ? parts[parts.length - 1].toLowerCase() : '';
+      // 2. Extração segura do slug
+      var parts = location.pathname.split("/").filter(Boolean);
+      var slug = parts.length > 0 ? parts[parts.length - 1].toLowerCase().replace(/[^a-z0-9_-]/g, "") : "";
 
-      if (slug && ROUTES[slug]) {
-        document.getElementById('descText').textContent = 'Conectando a ' + ROUTES[slug] + '...';
+      if (slug && Object.prototype.hasOwnProperty.call(ROUTES, slug)) {
         forward(ROUTES[slug]);
         return;
       }
 
-      // 3. Try fetching latest routes.json asynchronously (in case newly committed)
-      fetch('/routes.json?t=' + Date.now())
+      // 3. Fallback assíncrono em routes.json
+      fetch("/routes.json", { cache: "no-store" })
         .then(function (r) { return r.json(); })
         .then(function (data) {
-          if (data && typeof data === 'object') {
-            ROUTES = Object.assign(ROUTES, data);
-            if (slug && ROUTES[slug]) {
-              forward(ROUTES[slug]);
-              return;
-            }
+          if (data && typeof data === "object" && slug && Object.prototype.hasOwnProperty.call(data, slug)) {
+            forward(data[slug]);
+            return;
           }
-          showNotFound(slug);
+          showError("Atalho não encontrado", "Verifique o QR Code escaneado ou acesse o check-in de entregadores.");
         })
         .catch(function () {
-          showNotFound(slug);
+          showError("Atalho não encontrado", "Verifique o QR Code escaneado ou acesse o check-in de entregadores.");
         });
     })();
   </script>
