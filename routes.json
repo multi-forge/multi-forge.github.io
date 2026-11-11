@@ -1,8 +1,8 @@
 {
-  "motoboy": "https://anthor-server-1.tail3916ee.ts.net/motoboy",
-  "cozinha": "https://anthor-server-1.tail3916ee.ts.net/cozinha",
-  "painel": "https://anthor-server-1.tail3916ee.ts.net/cozinha",
-  "qrcode": "https://anthor-server-1.tail3916ee.ts.net/qrcode",
-  "alexa": "https://anthor-server-1.tail3916ee.ts.net/cozinha",
-  "server": "https://anthor-server-1.tail3916ee.ts.net"
+  "motoboy": "https://anthor-server.tail3916ee.ts.net/motoboy",
+  "cozinha": "https://anthor-server.tail3916ee.ts.net/cozinha",
+  "painel": "https://anthor-server.tail3916ee.ts.net/cozinha",
+  "qrcode": "https://anthor-server.tail3916ee.ts.net/qrcode",
+  "alexa": "https://anthor-server.tail3916ee.ts.net/cozinha",
+  "server": "https://anthor-server.tail3916ee.ts.net"
 }
